@@ -1,11 +1,13 @@
 package server.entities
 
+import interfaces.IO
+
 import java.net.ServerSocket
 import java.net.Socket
 import java.nio.charset.Charset
 import java.util.*
 
-class Server (val ip: String, val port: Int) {
+class Server (val ip: String, val port: Int): IO {
   
 
   fun startServer () {
@@ -23,7 +25,11 @@ class Server (val ip: String, val port: Int) {
 
 
   fun clientHandler (client: Socket) {
-    var byteArraySize = ByteArray(1024)
-    client.getInputStream.read(byteArraySize)
+
+    sendMessage(client.getOutputStream(), "Informe o seu username: ")
+
+    val username = receiveMessage(client.getInputStream())
+    
+    println(username)
   }
 }
