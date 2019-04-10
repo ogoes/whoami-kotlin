@@ -29,7 +29,7 @@ class Server (val ip: String, val port: Int): IO {
     sendMessage(client.getOutputStream(), "Informe o seu username: ")
 
     val username = receiveMessage(client.getInputStream())
-    
+
     println(username)
   }
 }

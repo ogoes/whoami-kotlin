@@ -1,23 +1,27 @@
-ARQ1=server
-ARQ2=client
+SERVER=src/server/main
+CLIENT=src/client/main
 COMP=kotlinc
 ARG=-include-runtime -d
+
+INTERFACES=src/interfaces/IO.kt
+SERVER_ENTITIES=src/server/entities/Server.kt
+CLIENT_ENTITIES=src/client/entities/Client.kt
 
 all:
 	make compServer
 	make compClient
 
 compServer:
-	$(COMP) $(ARQ1).kt $(ARG) $(ARQ1).jar
+	$(COMP) $(SERVER).kt $(INTERFACES) $(SERVER_ENTITIES) $(ARG) $(SERVER).jar
 
 compClient:
-	$(COMP) $(ARQ2).kt $(ARG) $(ARQ2).jar
+	$(COMP) $(CLIENT).kt $(INTERFACES) $(CLIENT_ENTITIES) $(ARG) $(CLIENT).jar
 
 runS:
-	java -jar $(ARQ2).jar
+	java -jar $(SERVER).jar
 
 runC:
-	java -jar $(ARQ1).jar
+	java -jar $(CLIENT).jar
 
 clean:
-	rm *.jar
+	rm {$(SERVER),$(CLIENT)}.jar
