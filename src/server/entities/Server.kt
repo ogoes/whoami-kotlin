@@ -19,7 +19,11 @@ class Server (val ip: String, val port: Int): IO {
     while (true) {
       var client = serverSocket.accept()
 
-      clientHandler(client)
+      val handlerThread = Thread {
+        clientHandler(client)
+      }
+      handlerThread.start()
+
     }
   }
 
