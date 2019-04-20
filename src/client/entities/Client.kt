@@ -59,7 +59,7 @@ class Client (): IO   {
     _username = user
   }
   fun getUsername (): String {
-      return _username
+    return _username
   }
   fun connectServer (serverIP: String, serverPort: Int): Int {
 
@@ -79,6 +79,8 @@ class Client (): IO   {
     val reader = server.getInputStream()
     val writer = server.getOutputStream()
 
+    var username: String
+
     sendMessage(writer, "INIT")
 
 
@@ -86,16 +88,19 @@ class Client (): IO   {
     while (message != "END" ) {
       while (message == "ASK" || message == "ERROR1") {
         print("\\> ")
-        var username = readLine()!!
+        username = readLine()!!
         sendMessage(writer, "ANSWER")
         if (receiveMessage(reader) == "OK") {
           sendMessage(writer, username)
           message = receiveMessage(reader)        
         }
         if (message == "ERROR1") {
-          println("ERRO: nome atualmente em uso.\nNovo nome:")
+          println("\nERRO: nome atualmente em uso.\nNovo nome:")
         } else if (message == "OK") {
-          println("COMING SOON")
+          println("\n[$username] entrou no jogo\n")
+          println("Aguardando o início da partida.............")
+
+          play(server)
         }
 
       }
@@ -106,6 +111,25 @@ class Client (): IO   {
       message = receiveMessage(reader)
     }
     sendMessage(writer, "ENDED")
+    println("sdasd")
+  }
+
+  fun play (serverSocket: Socket) {
+    _serverSocket = serverSocket
+    val reader = _serverSocket.getInputStream()
+    val writer = _serverSocket.getOutputStream()
+
+    sendMessage(writer, "OK")
+    var message = receiveMessage(reader)
+    while (message != "END") {
+      if (!noWhiteSpaces(message) && !upperCase(message)) {
+        print(message)
+      }
+      sendMessage(writer, "GOTIT")
+      message = receiveMessage(reader)
+    }
+    sendMessage(writer, "OK ")
+
   }
 }
 

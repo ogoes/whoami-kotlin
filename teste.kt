@@ -12,7 +12,9 @@ class Ele (val i: String) {
 fun main(args: Array<String>) {
 
 
-  var list = mutableListOf <Ele> (Ele("0"), Ele("1"), Ele("2"))
+  var list = mutableListOf <Ele> (Ele("ogoes"), Ele("ada"), Ele("ele"))
 
-  println(list.binarySearchBy ("0") { it.get() })
+  for (e in list) {
+    println(e.get())
+  }
 }
