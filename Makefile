@@ -12,7 +12,7 @@ all:
 	make compClient
 
 compServer:
-	$(COMP) $(SERVER).kt $(INTERFACES) $(SERVER_ENTITIES) $(ARG) $(SERVER).jar
+	$(COMP) $(SERVER).kt $(INTERFACES) $(CLIENT_ENTITIES) $(SERVER_ENTITIES) $(ARG) $(SERVER).jar
 
 compClient:
 	$(COMP) $(CLIENT).kt $(INTERFACES) $(CLIENT_ENTITIES) $(ARG) $(CLIENT).jar
@@ -21,7 +21,11 @@ runS:
 	java -jar $(SERVER).jar
 
 runC:
-	java -jar $(CLIENT).jar
+	java -jar $(CLIENT).jar localhost:9999
+
+test:
+	$(COMP) teste.kt $(ARG) teste.jar && java -jar teste.jar
 
 clean:
 	rm {$(SERVER),$(CLIENT)}.jar
+

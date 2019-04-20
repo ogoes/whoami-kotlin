@@ -4,8 +4,8 @@ package client
 import client.entities.Client
 
 fun main(args: Array<String>) {
-  var serverIP = ""
-  var serverPort = 0
+  var serverIP: String
+  var serverPort: Int
 
   try {
     val argSplited = args[0].split(":")
@@ -14,8 +14,8 @@ fun main(args: Array<String>) {
     serverPort = argSplited[1].toInt()
     
 
-    val client: Client = Client(serverIP, serverPort)
-    client.connectServer()
+    val client: Client = Client()
+    client.connectServer(serverIP, serverPort)
 
   } catch (e: IndexOutOfBoundsException) {
     if (args.size == 0) {

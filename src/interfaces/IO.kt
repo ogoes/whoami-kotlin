@@ -5,6 +5,16 @@ import java.io.OutputStream
 import java.nio.charset.Charset
 
 interface IO {
+  
+
+  fun noWhiteSpaces (message: String): Boolean {
+    return Regex("\\w+?[^\\s]\\w+?").matches(message)
+  }
+
+  fun upperCase (message: String): Boolean {
+    return Regex("[A-Z]+").matches(message)
+  }
+
   fun sendMessage (outputStream: OutputStream, message: String) {
 
     val bufferedMessage = message.toByteArray(Charsets.UTF_8)
