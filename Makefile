@@ -7,9 +7,18 @@ INTERFACES=src/interfaces/IO.kt
 SERVER_ENTITIES=src/server/entities/Server.kt
 CLIENT_ENTITIES=src/client/entities/Client.kt
 
-all:
-	make compServer
-	make compClient
+
+
+
+
+all: compServer compClient
+	1 2> /dev/null
+
+runS: compServer
+	java -jar $(SERVER).jar
+
+runC: compClient
+	java -jar $(CLIENT).jar localhost:9999
 
 compServer:
 	$(COMP) $(SERVER).kt $(INTERFACES) $(CLIENT_ENTITIES) $(SERVER_ENTITIES) $(ARG) $(SERVER).jar
@@ -17,11 +26,7 @@ compServer:
 compClient:
 	$(COMP) $(CLIENT).kt $(INTERFACES) $(CLIENT_ENTITIES) $(ARG) $(CLIENT).jar
 
-runS:
-	java -jar $(SERVER).jar
 
-runC:
-	java -jar $(CLIENT).jar localhost:9999
 
 test:
 	$(COMP) teste.kt $(ARG) teste.jar && java -jar teste.jar

@@ -24,7 +24,7 @@ interface IO {
   } 
 
   fun receiveMessage (inputStream: InputStream): String {
-    val buffer = ByteArray(1024)
+    val buffer = ByteArray(4096)
     val size = inputStream.read(buffer)
 
     return buffer.copyOf(size).toString(Charsets.UTF_8)

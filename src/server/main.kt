@@ -14,4 +14,5 @@ fun main(args: Array<String>) {
 
   val server: Server = Server(serverIP, serverPort)
   server.startServer()
+  server.initGame()
 }

@@ -11,10 +11,16 @@ import java.util.*
 
 class Server (val ip: String, val port: Int): IO {
   private lateinit var _master: Client
+  private lateinit var _player: Client
   private var _clientList: MutableList <Client> = ArrayList()
-  private var _allowConnection: Boolean = true
+  private var _clientNumber: Int = 2
+  private var _tip: String = ""
+  private var _answer: String = ""
+  private var _curMasterIndex: Int = 0
+  private var _curPlayerIndex: Int = 1
   private var _timer: Int = 60
-  private var _clientNumber: Int = 3
+  private var _allowConnection: Boolean = true
+  private var _inGame: Boolean = true
 
   fun startServer () {
     val serverSocket: ServerSocket
@@ -32,7 +38,9 @@ class Server (val ip: String, val port: Int): IO {
       }
     }
 
-    initPlay()
+    sendPlayers()
+    defineRules()
+    sendInstruction()
 
   }
 
@@ -55,31 +63,34 @@ class Server (val ip: String, val port: Int): IO {
       "BEM VINDO AO \"Who Am I\"\n",
       "----------------------------------------------------------------\n",
       "Atualmente há ${_clientList.size} jogadores conectados\n\n",
-      "Para começar, nos diga: Quem é você?\n",
-      "ASK",
-      "END"
+      "Para começar, nos diga: Quem é você?\n"
     )
 
+    var message: String
 
-    var message = receiveMessage(clientReader)
-
-    if (message == "INIT") {
-      messages.forEach {
-        sendMessage(clientWriter, it)
-        message = receiveMessage(clientReader)
-        while (message == "ANSWER") {
-          sendMessage(clientWriter, "OK")
-          var username = receiveMessage(clientReader)
-          if (findClientByUsername(username) == -1) {
-            sendMessage(clientWriter, "OK")
-            addClient(username, client)
-          } else {
-            sendMessage(clientWriter, "ERROR1")
-          }
-          message = receiveMessage(clientReader)
-        }
-      }
+    messages.forEach {
+      sendMessage(clientWriter, it)
+      message = receiveMessage(clientReader)
     }
+
+
+
+    var username: String = "default"
+
+
+    sendMessage(clientWriter, "ASK")
+    message = receiveMessage(clientReader)
+    while (message != "ENDED") {
+      if (findClientByUsername(message) == -1) {
+        username = message
+        sendMessage(clientWriter, "END")
+      } else {
+        sendMessage(clientWriter, "ERROR1")
+      }
+      message = receiveMessage(clientReader)
+    }
+
+    addClient(username, client)
     println(_clientList.map { it -> it.getUsername() })
   }
 
@@ -101,35 +112,213 @@ class Server (val ip: String, val port: Int): IO {
     }
   }
   
-  fun initPlay () {
-    val messages = listOf <String> (
-      "BEGIN",
+  fun sendPlayers () {
+    var messages = listOf <String> (
+      "BEGININIT",
       "\n\n\n\n----------------------------------------------------------------\n",
       "INICIANDO PARTIDA\n",
       "----------------------------------------------------------------\n",
       "Jogadores conectados: ${_clientList.size}\n",
       "PLAYERS",
       "MESTRE da rodada: [${_master.getUsername()}]\n",
-      "Aguardando definição de dica e resposta pelo MESTRE...",
+      "Aguardando definição de dica e resposta pelo MESTRE...\n",
       "END"
     )
 
-    var message: String
-    _clientList.forEach {
+    var clients: String = ""
+    for (i in _clientList) {
+      clients += "\t[${i.getUsername()}]\n"
+    }
+
+    sendMessageForAll(messages.map { it -> if (it == "PLAYERS") clients else it })
+  }
+
+  fun defineRules () {
+    val messages = listOf <String> (
+      "BEGINRULES",
+      "\n\n\n\n----------------------------------------------------------------\n",
+      "MESTRE DA RODADA\n",
+      "----------------------------------------------------------------\n",
+      "Informe a dica:",
+      "ASKD",
+      "Informe a resposta:",
+      "ASKR",
+      "END"
+    )
+
+    val reader = _master.getInputClient()
+    val writer = _master.getOutputClient()
+
+    sendMessage(writer, "MASTER");
+    var message = receiveMessage(reader);
+    if (message == "OK") {
       for (msg in messages) {
-        if (msg == "PLAYERS") {
-          for (i in _clientList) {
-            sendMessage(it.getOutputClient(), "\t[${i.getUsername()}]\n")
-            message = receiveMessage(it.getInputClient())        
-          }
-        } else {
-          sendMessage(it.getOutputClient(), msg)
-          message = receiveMessage(it.getInputClient())
+        sendMessage(writer, msg)
+        message = receiveMessage(reader)
+        if (msg == "ASKD") {
+          _tip = message
+        } else if (msg == "ASKR") {
+          _answer = message
         }
       }
     }
+  }
+
+  fun sendInstruction () {
+
+    sendMessageForAll(listOf <String> (
+      "BEGININIT",
+      "\n\n\n\n----------------------------------------------------------------\n",
+      "PARTIDA INICIADA\n",
+      "----------------------------------------------------------------\n",
+      "MESTRE: [${_master.getUsername()}]\n",
+      "Dica: \"${_tip}\"\n\n",
+      "Instruções:\n",
+      "> somente são permotidas perguntas com resposta do tipo SIM/NÃO\n",
+      "> perguntas inadequadas serão invalidadas pelo MESTRE\n",
+      "> JOGADOR perde a vez se fizer pergunta inadequada\n\n",
+      "END"
+    ))
+  }
+  
+  fun sendMessageForAll(messages: List <String>) {
+    _clientList.forEach {
+      for (msg in messages) {
+        sendMessage(it.getOutputClient(), msg)
+        receiveMessage(it.getInputClient())
+      }
+    }
+  }
+
+  fun initGame () {
+    _player = _clientList[_curPlayerIndex]
+    while (_inGame) {
+      sendMessageForAll(listOf <String> (
+        "BEGIN",
+        "JOGADOR da vez: [${_player.getUsername()}]\n"
+      ))
+    }
+  }
+
+  fun asking () {
+    val readerPlayer = _player.getInputClient()
+    val writerPlayer = _player.getOutputClient()
+
+    val readerMaster = _master.getInputClient()
+    val writerMaster = _master.getOutputClient()
+
+    var pergunta = listOf <String> (
+      "YOU",
+      "\n\nDICA: \"${_tip}\"\n",
+      "Sua pergunta:\n",
+      "ASKP",
+      "END"
+    )
+    var tentativa = listOf <String> (
+      "YOU",
+      "Tentativa:\n",
+      "ASKT",
+      "END"
+    )
+
+    sendMessage(writerPlayer, "YOU")
+    var message = receiveMessage(readerPlayer)
+
+    var question: String
+    var attempt: String
+
+    pergunta.forEach {
+      sendMessage(writerPlayer, it)
+      message = receiveMessage(readerPlayer)
+      if (it == "ASKP") {
+        question = message
+      }
+    }
+    
+    sendMessageForAll(listOf <String> (
+      "BEGIN",
+      "[${_player.getUsername()}]: ${question}",
+      "END"
+    ))
+
+    
+
+    var answer = askingMaster(
+      listOf <String> (
+        "MASTER",
+        "[0] SIM",
+        "[1] NÃO",
+        "[2] INVÁLIDA"
+      ),
+      listOf <Regex> (
+        Regex("^0|(n[aã]o)$", RegexOption.IGNORE_CASE),
+        Regex("^1|(sim)$", RegexOption.IGNORE_CASE),
+        Regex("^2|(inv[aá]lida)|(invalid)$", RegexOption.IGNORE_CASE)
+      )
+    )
+
+    sendMessageForAll(listOf <String> (
+      "BEGIN",
+      "[MESTRE]: ${answer}",
+      "END"
+    ))
+
+    sendMessage(writerPlayer, "YOU")
+    var message = receiveMessage(readerPlayer)
+
+    tentativa.forEach {
+      sendMessage(writerPlayer, it)
+      message = receiveMessage(readerPlayer)
+      if (it == "ASKP") {
+        attempt = message
+      }
+    }
+
+    answer = askingMaster(
+      listOf <String> (
+        "MASTER",
+        "[0] ACERTOU",
+        "[1] ERROU",
+      ),
+      listOf <Regex> (
+        Regex("^0|(acertou)(hit)$", RegexOption.IGNORE_CASE),
+        Regex("^1|(errou)$", RegexOption.IGNORE_CASE),
+      )
+    )
+
+
+
+    
+    
 
     
   }
-  
+
+  fun askingMaster (questions: List <String>, regexes: List <Regex>): String {
+    val readerMaster = _master.getInputClient()
+    val writerMaster = _master.getOutputClient()
+
+    var answer = "NOP!!!!"
+    questions.forEach {
+      sendMessage(writerMaster, it)
+      var message = receiveMessage(readerMaster)
+    }
+    sendMessage(writerMaster, "ASK")
+    message = receiveMessage(readerMaster)
+    while (message != "ENDED") {
+      for (rgx in regexes) {
+        if (rgx.matches(message)) {
+          sendMessage(writerMaster, "END")
+          answer =  rgx.find(message).value
+        }
+      }
+      if (answer == "NOP!!!!") {
+        sendMessage(writerMaster, "ERRO")              
+      }
+      message = receiveMessage(readerMaster)
+    }
+
+    return answer
+  }
+
 }
